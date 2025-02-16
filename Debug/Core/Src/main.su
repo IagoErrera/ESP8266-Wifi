@@ -1,0 +1,12 @@
+../Core/Src/main.c:78:5:find_string	40	static
+../Core/Src/main.c:97:5:wait_ok	16	static
+../Core/Src/main.c:110:5:wait	24	static
+../Core/Src/main.c:121:6:wifi_init	16	static
+../Core/Src/main.c:166:5:handle_request	24	static
+../Core/Src/main.c:189:6:handle_route	72	static
+../Core/Src/main.c:217:5:main	288	static
+../Core/Src/main.c:286:6:SystemClock_Config	88	static
+../Core/Src/main.c:334:13:MX_USART1_UART_Init	8	static
+../Core/Src/main.c:365:13:MX_DMA_Init	16	static
+../Core/Src/main.c:386:13:MX_GPIO_Init	32	static
+../Core/Src/main.c:417:6:Error_Handler	4	static,ignoring_inline_asm
