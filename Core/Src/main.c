@@ -163,13 +163,14 @@ void wifi_init(void) {
 }
 
 // Request -> Link\r\n\r\n+IPD,<channel>,<length>;<Request>\r\n<RequesterInfo>\r\n<Status>\r\n[...]
-int handle_request(int* channel, int* length) {
+uint8_t handle_request(int* channel, int* length) {
 	int found = find_string(r_data,"+IPD", buffer_start);
-	if (found == -1) return -1;
+	if (found == -1) return 0;
 
+	HAL_Delay(50);
 	buffer_start = (found + 5) % MAX_BUFFER_SIZE;
 
-	*channel = 0;
+	(*channel) = 0;
 	while (r_data[buffer_start] != ',') {
 		(*channel) = (*channel) * 10 + r_data[buffer_start++] - 48;
 		buffer_start = buffer_start % MAX_BUFFER_SIZE;
@@ -183,12 +184,12 @@ int handle_request(int* channel, int* length) {
 	}
 	buffer_start++; buffer_start = buffer_start % MAX_BUFFER_SIZE;
 
-	return found;
+	return 1;
 }
 
-void handle_route(char* end_point, int n, int channel, char* response, int rn) {
+uint8_t handle_route(char* end_point, int n, int channel, char* response, int rn) {
 	int found = -1;
-	if ((found = find_string(r_data, end_point, buffer_start)) == -1) return;
+	if ((found = find_string(r_data, end_point, buffer_start)) == -1) return 0;
 	buffer_start = (found + n + 11) % MAX_BUFFER_SIZE;
 
 	char data[32];
@@ -206,6 +207,26 @@ void handle_route(char* end_point, int n, int channel, char* response, int rn) {
 	buffer_start = (found + 11) % MAX_BUFFER_SIZE;
 
 	for (int i = 0; i < MAX_BUFFER_SIZE; i++) r_data[i] = '\0';
+
+	return 1;
+}
+
+void handle_command(char* command, int length, void* handler(void*), void* param) {
+	for (int i = 0; i < length; i++) if (command[i] != r_data[buffer_start + i]) return;
+
+	(handler)(param);
+}
+
+void* handle_led_on(void* param) {
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 1);
+
+	return NULL;
+}
+
+void* handle_led_off(void* param) {
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 0);
+
+	return NULL;
 }
 
 /* USER CODE END 0 */
@@ -246,9 +267,10 @@ int main(void)
 	wifi_init();
 
 	char data_response[256];
+	int data_len;
 
-	int data_len = sprintf(data_response, "AT+CIFSR\r\n");
-	HAL_UART_Transmit(&huart1, data_response, data_len, 100);
+//	data_len = sprintf(data_response, "AT+CIFSR\r\n");
+//	HAL_UART_Transmit(&huart1, data_response, data_len, 100);
 
 	data_len = sprintf(data_response, RESPONSE);
   /* USER CODE END 2 */
@@ -259,20 +281,28 @@ int main(void)
 	int channel, length, found;
 	while (1){
 		found = -1;
-		if ((found = wait("GET /test")) > -1) {
-			HAL_Delay(100);
-			handle_request(&channel, &length);
-			handle_route("GET /test", 9, channel, data_response, data_len);
 
-			status = 10;
+//		if ((found = wait("GET /test")) > -1) {
+//			HAL_Delay(100);
+//			handle_request(&channel, &length);
+//			handle_route("GET /test", 9, channel, data_response, data_len);
+//		}
+
+//		if ((found = wait("GET /test")) == -1) continue;
+		if (handle_request(&channel, &length)) {
+			handle_route("GET /test", 9, channel, data_response, data_len);
+			handle_command("LED ON", 6, handle_led_on, NULL);
+			handle_command("LED OFF", 7, handle_led_off, NULL);
 		}
 
-		if (handle_request(&channel, &length) == -1) continue;
 
-		handle_route("GET /test", 9, channel, data_response, data_len);
+//		if ((found = wait("GET /test")) > -1) continue;
+//		if (!handle_request(&channel, &length)) continue;
+//		HAL_Delay(100);
+//
+//		handle_route("GET /test", 9, channel, data_response, data_len);
 
     /* USER CODE END WHILE */
-
 
     /* USER CODE BEGIN 3 */
 	}
